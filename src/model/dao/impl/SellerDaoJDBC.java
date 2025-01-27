@@ -92,10 +92,45 @@ public class SellerDaoJDBC implements SellerDao {
 		return dep;
 	}
 
+	// Busca todos os vendedores e ordena por nome
 	@Override
 	public List<Seller> findAll() {
-		// TODO Auto-generated method stub
-		return null;
+		PreparedStatement st = null;
+		ResultSet rs = null;
+		
+		try {
+			st = conn.prepareStatement(
+					// Query do SQL:
+					"SELECT seller.*,department.Name as DepName "
+					+ "FROM seller INNER JOIN department "
+					+ "ON seller.DepartmentId = department.Id "
+					+ "ORDER BY Name");
+		
+			rs = st.executeQuery(); // executar a query
+			
+			List<Seller> list = new ArrayList<>();
+			Map<Integer, Department> map = new HashMap<>(); // guarda qualquer departamento que for instanciado
+			
+			while (rs.next()) {  // para cada valor do resultSet
+				
+				// Testar se o departamento já existe (se existir, será reaproveitado)
+				Department dep = map.get(rs.getInt("DepartmentId"));
+				
+				if (dep == null) {  // se não existir um departamento no map, retornará null
+					dep = instantiateDepartment(rs); // chama o método para instanciar o departamento
+					map.put(rs.getInt("DepartmentId"), dep); // salva o departamento dentro do map
+				}
+					
+				Seller obj = instantiateSella(rs, dep); // chama o método para instanciar o vendedor
+				list.add(obj); // adiciona o vendedor na lista
+			}
+			return list;
+		} catch (SQLException e) {
+			throw new DbException(e.getMessage());
+		} finally {  // para fechar os recursos rs e st
+			DB.closeStatement(st);
+			DB.closeResultSet(rs);
+		}
 	}
 
 	@Override
@@ -121,8 +156,8 @@ public class SellerDaoJDBC implements SellerDao {
 			
 			while (rs.next()) {  // para cada valor do resultSet
 				
-				// Testar se o departamento já existe
-				Department dep = map.get(rs.getInt("DepartmentId"));
+				// Testar se o departamento já existe (se existir, será reaproveitado)
+				Department dep = map.get(rs.getInt("DepartmentId"));  
 				
 				if (dep == null) {  // se não existir um departamento no map, retornará null
 					dep = instantiateDepartment(rs); // chama o método para instanciar o departamento
@@ -140,7 +175,4 @@ public class SellerDaoJDBC implements SellerDao {
 			DB.closeResultSet(rs);
 		}
 	}
-	
-	
-
 }
